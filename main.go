@@ -6,6 +6,13 @@ import (
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
+		vpc, err := createVpc(ctx)
+		if err != nil {
+			return err
+		}
+
+		ctx.Export("vpcId", vpc.ID())
+
 		return nil
 	})
 }
