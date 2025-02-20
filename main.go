@@ -11,7 +11,17 @@ func main() {
 			return err
 		}
 
+		_, privateSubnets, err := SetDefaultSubnets(ctx, vpc)
+		if err != nil {
+			return err
+		}
+
 		ctx.Export("vpcId", vpc.ID())
+		subnetIds := []pulumi.IDOutput{}
+		for _, subnet := range privateSubnets.Subnets {
+			subnetIds = append(subnetIds, subnet.ID())
+		}
+		ctx.Export("subnetIds", pulumi.ToIDArrayOutput(subnetIds))
 
 		return nil
 	})
