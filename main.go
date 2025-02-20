@@ -11,7 +11,12 @@ func main() {
 			return err
 		}
 
-		_, privateSubnets, err := SetDefaultSubnets(ctx, vpc)
+		publicSubnets, privateSubnets, err := SetDefaultSubnets(ctx, vpc)
+		if err != nil {
+			return err
+		}
+
+		err = SetDefaultInternetGateway(ctx, vpc, publicSubnets)
 		if err != nil {
 			return err
 		}
