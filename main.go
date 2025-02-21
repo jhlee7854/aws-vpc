@@ -21,6 +21,16 @@ func main() {
 			return err
 		}
 
+		err = SetDefaultNATGateway(ctx, vpc, publicSubnets.Subnets[0], privateSubnets.Subnets[0])
+		if err != nil {
+			return err
+		}
+
+		err = SetDefaultNATGateway(ctx, vpc, publicSubnets.Subnets[1], privateSubnets.Subnets[1])
+		if err != nil {
+			return err
+		}
+
 		ctx.Export("vpcId", vpc.ID())
 		subnetIds := []pulumi.IDOutput{}
 		for _, subnet := range privateSubnets.Subnets {
@@ -30,4 +40,8 @@ func main() {
 
 		return nil
 	})
+}
+
+func Last(slice []string) string {
+	return slice[len(slice)-1]
 }

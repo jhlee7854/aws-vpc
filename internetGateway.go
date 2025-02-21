@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ec2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -33,19 +34,13 @@ func createRouteTableForIGW(ctx *pulumi.Context, vpcId pulumi.StringInput, igwId
 	}, opts...)
 }
 
-func createRouteTableForIGWAssociations(ctx *pulumi.Context, routeTableId pulumi.StringInput, publicSubnets *subnets, opts ...pulumi.ResourceOption) error {
-	for i, subnet := range publicSubnets.Subnets {
-		subnet.AvailabilityZone.ApplyT(func(v string) error {
-			rtaName := fmt.Sprintf("%s-subnet-public%d-%s", ctx.Stack(), i+1, v)
-			_, err := ec2.NewRouteTableAssociation(ctx, rtaName, &ec2.RouteTableAssociationArgs{
-				RouteTableId: routeTableId,
-				SubnetId:     subnet.ID(),
-			}, opts...)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
+func createRouteTableForIGWAssociations(ctx *pulumi.Context, name string, routeTableId pulumi.StringInput, publicSubnetId pulumi.IDOutput, opts ...pulumi.ResourceOption) error {
+	_, err := ec2.NewRouteTableAssociation(ctx, name, &ec2.RouteTableAssociationArgs{
+		RouteTableId: routeTableId,
+		SubnetId:     publicSubnetId,
+	}, opts...)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -61,9 +56,15 @@ func SetDefaultInternetGateway(ctx *pulumi.Context, vpc *ec2.Vpc, publicSubnets 
 		return err
 	}
 
-	err = createRouteTableForIGWAssociations(ctx, rtForIgw.ID(), publicSubnets, pulumi.Parent(rtForIgw), pulumi.DependsOn([]pulumi.Resource{publicSubnets}))
-	if err != nil {
-		return err
+	for _, subnet := range publicSubnets.Subnets {
+		subnet.URN().ApplyT(func(urn string) error {
+			name := Last(strings.Split(urn, "::"))
+			err = createRouteTableForIGWAssociations(ctx, name, rtForIgw.ID(), subnet.ID(), pulumi.Parent(rtForIgw), pulumi.DependsOn([]pulumi.Resource{subnet}))
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 	}
 
 	return nil
