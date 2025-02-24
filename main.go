@@ -21,12 +21,11 @@ func main() {
 			return err
 		}
 
-		err = SetDefaultNATGateway(ctx, vpc, publicSubnets.Subnets[0], privateSubnets.Subnets[0])
-		if err != nil {
-			return err
-		}
+		rtbId1 := SetDefaultNATGateway(ctx, vpc, publicSubnets.Subnets[0], privateSubnets.Subnets[0])
 
-		err = SetDefaultNATGateway(ctx, vpc, publicSubnets.Subnets[1], privateSubnets.Subnets[1])
+		rtbId2 := SetDefaultNATGateway(ctx, vpc, publicSubnets.Subnets[1], privateSubnets.Subnets[1])
+
+		_, err = createVpcEndpointForS3(ctx, pulumi.StringArray{rtbId1, rtbId2}, vpc.ID(), pulumi.Parent(vpc))
 		if err != nil {
 			return err
 		}
