@@ -62,88 +62,45 @@ func createRouteTableForNGWAssociation(ctx *pulumi.Context, name string, routeTa
 }
 
 // 지정한 public subnet에 NAT Gateway를 만들고 지정한 private subnet들을 이용해 route table과 route table association을 생성한다.
-func SetDefaultNATGateway(ctx *pulumi.Context, vpc *ec2.Vpc, publicSubnet *ec2.Subnet, privateSubnets ...*ec2.Subnet) error {
-	pulumi.All(publicSubnet.URN().ToStringOutput(), publicSubnet.AvailabilityZone).ApplyT(func(args []interface{}) error {
+// NAT Gateway를 만드는 과정 중 생성한 route table ID를 반환한다.
+func SetDefaultNATGateway(ctx *pulumi.Context, vpc *ec2.Vpc, publicSubnet *ec2.Subnet, privateSubnets ...*ec2.Subnet) pulumi.IDOutput {
+	return pulumi.All(publicSubnet.URN().ToStringOutput(), publicSubnet.AvailabilityZone).ApplyT(func(args []interface{}) (pulumi.IDOutput, error) {
 		urn := args[0].(string)
 		az := args[1].(string)
 
 		eip, err := createEip(ctx, az, pulumi.Parent(vpc))
 		if err != nil {
-			return err
+			return pulumi.IDOutput{}, err
 		}
 
 		ngwName := strings.ReplaceAll(Last(strings.Split(urn, "::")), "subnet", "nat")
 		ngw, err := createNatGateway(ctx, ngwName, eip.ID(), publicSubnet.ID(), pulumi.Parent(vpc))
 		if err != nil {
-			return err
+			return pulumi.IDOutput{}, err
 		}
 
-		for i, privateSubnet := range privateSubnets {
-			privateSubnet.URN().ToStringOutput().ApplyT(func(urn string) error {
-				privateSubnetName := Last(strings.Split(urn, "::"))
+		rtForNgwID := privateSubnets[0].URN().ToStringOutput().ApplyT(func(urn string) (pulumi.IDOutput, error) {
+			rtbName := strings.ReplaceAll(Last(strings.Split(urn, "::")), "subnet", "rtb")
+			rtForNgw, err := createRouteTableForNGW(ctx, rtbName, vpc.ID(), ngw.ID(), pulumi.Parent(ngw))
+			if err != nil {
+				return pulumi.IDOutput{}, err
+			}
 
-				var rtForNgw *ec2.RouteTable
-				if i == 0 {
-					rtbName := strings.ReplaceAll(privateSubnetName, "subnet", "rtb")
-					rtForNgw, err = createRouteTableForNGW(ctx, rtbName, vpc.ID(), ngw.ID(), pulumi.Parent(ngw))
+			for _, privateSubnet := range privateSubnets {
+				privateSubnet.URN().ToStringOutput().ApplyT(func(urn string) error {
+					rtaName := Last(strings.Split(urn, "::"))
+					err = createRouteTableForNGWAssociation(ctx, rtaName, rtForNgw.ID(), privateSubnet.ID(), pulumi.Parent(rtForNgw), pulumi.DependsOn([]pulumi.Resource{privateSubnet}))
 					if err != nil {
 						return err
 					}
-				}
 
-				rtaName := privateSubnetName
-				err = createRouteTableForNGWAssociation(ctx, rtaName, rtForNgw.ID(), privateSubnet.ID(), pulumi.Parent(rtForNgw), pulumi.DependsOn([]pulumi.Resource{privateSubnet}))
-				if err != nil {
-					return err
-				}
+					return nil
+				})
+			}
 
-				return nil
-			})
-		}
+			return rtForNgw.ID(), nil
+		}).(pulumi.IDOutput)
 
-		return nil
-	})
-	// publicSubnet.AvailabilityZone.ApplyT(func(az string) error {
-	// 	eip, err := createEip(ctx, az, pulumi.Parent(vpc))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	publicSubnet.URN().ApplyT(func(urn string) error {
-	// 		ngwName := strings.ReplaceAll(Last(strings.Split(urn, "::")), "subnet", "nat")
-	// 		ngw, err := createNatGateway(ctx, ngwName, eip.ID(), publicSubnet.ID(), pulumi.Parent(vpc))
-	// 		if err != nil {
-	// 			return err
-	// 		}
-
-	// 		for i, privateSubnet := range privateSubnets {
-	// 			privateSubnet.URN().ApplyT(func(urn string) error {
-	// 				privateSubnetName := Last(strings.Split(urn, "::"))
-
-	// 				var rtForNgw *ec2.RouteTable
-	// 				if i == 0 {
-	// 					rtbName := strings.ReplaceAll(privateSubnetName, "subnet", "rtb")
-	// 					rtForNgw, err = createRouteTableForNGW(ctx, rtbName, vpc.ID(), ngw.ID(), pulumi.Parent(ngw))
-	// 					if err != nil {
-	// 						return err
-	// 					}
-	// 				}
-
-	// 				rtaName := privateSubnetName
-	// 				err = createRouteTableForNGWAssociation(ctx, rtaName, rtForNgw.ID(), privateSubnet.ID(), pulumi.Parent(rtForNgw), pulumi.DependsOn([]pulumi.Resource{privateSubnet}))
-	// 				if err != nil {
-	// 					return err
-	// 				}
-
-	// 				return nil
-	// 			})
-	// 		}
-
-	// 		return nil
-	// 	})
-
-	// 	return nil
-	// })
-
-	return nil
+		return rtForNgwID, nil
+	}).(pulumi.IDOutput)
 }
