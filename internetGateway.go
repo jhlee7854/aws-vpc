@@ -58,7 +58,7 @@ func SetDefaultInternetGateway(ctx *pulumi.Context, vpc *ec2.Vpc, publicSubnets 
 
 	for _, subnet := range publicSubnets.Subnets {
 		subnet.URN().ToStringOutput().ApplyT(func(urn string) error {
-			name := Last(strings.Split(urn, "::"))
+			name := strings.ReplaceAll(Last(strings.Split(urn, "::")), "subnet", "rta")
 			err = createRouteTableForIGWAssociations(ctx, name, rtForIgw.ID(), subnet.ID(), pulumi.Parent(rtForIgw), pulumi.DependsOn([]pulumi.Resource{subnet}))
 			if err != nil {
 				return err

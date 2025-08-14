@@ -57,12 +57,17 @@ func (s *subnets) AddSubnet(ctx *pulumi.Context, args *subnetArgs) (*ec2.Subnet,
 	}, nil)
 
 	subnetName := fmt.Sprintf("%s-subnet-%s%d-%s", ctx.Stack(), s.SubnetType, len(s.Subnets)+1, args.AvailabilityZone)
+	subnetTagKey := "kubernetes.io/role/elb"
+	if s.SubnetType == "private" {
+		subnetTagKey = "kubernetes.io/role/internal-elb"
+	}
 	subnet, err := ec2.NewSubnet(ctx, subnetName, &ec2.SubnetArgs{
 		AvailabilityZone:               pulumi.String(args.AvailabilityZone),
 		CidrBlock:                      cidrBlock.Result(),
 		PrivateDnsHostnameTypeOnLaunch: pulumi.String("ip-name"),
 		Tags: pulumi.StringMap{
-			"Name": pulumi.String(subnetName),
+			"Name":       pulumi.String(subnetName),
+			subnetTagKey: pulumi.String("1"),
 		},
 		VpcId: args.VpcId,
 	}, pulumi.Parent(s))

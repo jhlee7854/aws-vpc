@@ -88,7 +88,7 @@ func SetDefaultNATGateway(ctx *pulumi.Context, vpc *ec2.Vpc, publicSubnet *ec2.S
 
 			for _, privateSubnet := range privateSubnets {
 				privateSubnet.URN().ToStringOutput().ApplyT(func(urn string) error {
-					rtaName := Last(strings.Split(urn, "::"))
+					rtaName := strings.ReplaceAll(Last(strings.Split(urn, "::")), "subnet", "rta")
 					err = createRouteTableForNGWAssociation(ctx, rtaName, rtForNgw.ID(), privateSubnet.ID(), pulumi.Parent(rtForNgw), pulumi.DependsOn([]pulumi.Resource{privateSubnet}))
 					if err != nil {
 						return err
