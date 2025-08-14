@@ -19,7 +19,7 @@ func createInternetGateway(ctx *pulumi.Context, vpcId pulumi.StringInput, opts .
 }
 
 func createRouteTableForIGW(ctx *pulumi.Context, vpcId pulumi.StringInput, igwId pulumi.StringInput, opts ...pulumi.ResourceOption) (*ec2.RouteTable, error) {
-	routeTableName := fmt.Sprintf("%s-rtb-pulbic", ctx.Stack())
+	routeTableName := fmt.Sprintf("%s-rtb-public", ctx.Stack())
 	return ec2.NewRouteTable(ctx, routeTableName, &ec2.RouteTableArgs{
 		Routes: ec2.RouteTableRouteArray{
 			&ec2.RouteTableRouteArgs{

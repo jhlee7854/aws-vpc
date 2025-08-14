@@ -19,7 +19,7 @@ func NewPublicSubnets(ctx *pulumi.Context, opts ...pulumi.ResourceOption) (*subn
 	return newSubnetsResource(ctx, true, opts...)
 }
 
-func NewPrivateSubents(ctx *pulumi.Context, opts ...pulumi.ResourceOption) (*subnets, error) {
+func NewPrivateSubnets(ctx *pulumi.Context, opts ...pulumi.ResourceOption) (*subnets, error) {
 	return newSubnetsResource(ctx, false, opts...)
 }
 
@@ -123,7 +123,7 @@ func SetDefaultSubnets(ctx *pulumi.Context, vpc *ec2.Vpc) (*subnets, *subnets, e
 		return nil, nil, err
 	}
 
-	privateSubnets, err := NewPrivateSubents(ctx, pulumi.Parent(vpc))
+	privateSubnets, err := NewPrivateSubnets(ctx, pulumi.Parent(vpc))
 	if err != nil {
 		return nil, nil, err
 	}

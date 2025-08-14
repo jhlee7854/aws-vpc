@@ -56,7 +56,7 @@ func TestCreateVpc(t *testing.T) {
 			urn := all[0].(pulumi.URN)
 			enableDnsHostnames := all[1].(bool)
 
-			assert.Truef(t, enableDnsHostnames, "EnabelDnsHostnames property must have true on VPC %v", urn)
+			assert.Truef(t, enableDnsHostnames, "EnableDnsHostnames property must have true on VPC %v", urn)
 			wg.Done()
 			return nil
 		})
